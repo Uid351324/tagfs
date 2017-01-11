@@ -824,9 +824,11 @@ int tagsymlink (const char *linkname, const char *path)
 		query->clear();
 		query->bind(1,paths[pathsize-2]);		
 		boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
+		//TODO now in query links to last tag : expand all tags or forbiden to link in query
+		//ex when in query/foo/bar ln -s will create tag for bar only but query for ( foo and bar ) does not return newly link so ln return error
 		if( ! result->next_row())
 		{
-			return -ENOENT;
+			return -EACCES;
 		}
 		int64 tid = XXH32(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
 		int64 fid = XXH32(linkname,strlen(linkname),XXHASHSEED);
