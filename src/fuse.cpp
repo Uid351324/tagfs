@@ -88,7 +88,7 @@ Ftype* createQuery(std::vector<std::string> &paths, bool noparents)
 	boost::shared_ptr<sqlite::query> queryStatment ( db->setUp(query.str()));
 	for(uint i = 1, j = 1 ; i < pathsize -1;  i++)
 	{
-		int64 htag = XXH32(paths[i].c_str(),paths[i].size(),XXHASHSEED);
+		int64 htag = XXH64(paths[i].c_str(),paths[i].size(),XXHASHSEED);
 		std::cout << i <<" " <<paths[i] <<" "<<htag << std::endl;
 		queryStatment->bind(j++,htag);
 		queryStatment->bind(j++,name);
@@ -128,7 +128,7 @@ Ftype* fileOrTagByName(std::vector<std::string> &paths, bool noparents)
 		query = db->selectTagByNameWithParent;
 		query->clear();
 		query->bind(1,name);
-		int64 hparent = XXH32(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
+		int64 hparent = XXH64(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
 		query->bind(2,hparent);
 	}
 	else
@@ -159,7 +159,7 @@ Ftype* fileOrTagByName(std::vector<std::string> &paths, bool noparents)
 	}
 	else
 	{
-		int64 hparent = XXH32(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
+		int64 hparent = XXH64(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
 		if(paths[0].compare("tagged") == 0)
 		{
 			query = db->selectTaggedFileByNameWithParent;
@@ -455,7 +455,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 	boost::shared_ptr<sqlite::query> queryStatment ( db->setUp(query.str()));
 	for(uint i = 1; i < pathsize; )
 	{
-		int64 htag = XXH32(paths[i].c_str(),paths[i].size(),XXHASHSEED);
+		int64 htag = XXH64(paths[i].c_str(),paths[i].size(),XXHASHSEED);
 		queryStatment->bind(i,htag);
 		i++;
 	}
@@ -492,7 +492,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 		}
 		else// /tags/*/*
 		{
-			int64 htag = XXH32(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
+			int64 htag = XXH64(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
 			std::cout<< paths[pathsize-1]<<" "<< htag<<std::endl;
 			filldir(buf,filler,true,htag);
 			fillinks(buf,filler,htag);
@@ -506,7 +506,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 		}
 		else
 		{
-			int64 htag = XXH32(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
+			int64 htag = XXH64(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
 			filldir(buf,filler,true,htag);
 			fillinksplus(buf,filler,htag);
 		}
@@ -689,7 +689,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 	uint pathsize = paths.size();
 	if ( (( paths[0].compare("tagged") == 0 ) or (paths[0].compare("tags") == 0))  and ( (pathsize != 1 ) or ( paths[1].compare("_all") == 0) ) )
 	{
-		int64 hash = XXH32(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
+		int64 hash = XXH64(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
 		
 					sqlite::query *query;
 		query = db->insertTags;
@@ -702,7 +702,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 		}
 		else
 		{
-			int64 hashPar = XXH32(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
+			int64 hashPar = XXH64(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
 			query->bind(3,hashPar);
 			
 		}
@@ -739,7 +739,7 @@ int tagrmdir (const char *path)
 		boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
 		if(result->next_row())
 		{
-			int64 hash = XXH32(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
+			int64 hash = XXH64(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
 			
 			query = db->deleteTags;
 			query->clear();
@@ -775,8 +775,8 @@ int tagrename (const char *oldpath, const char *newpath)
 					return -EACCES;
 				else
 				{
-					int64 oldhash = ft->id;//XXH32(oldpaths[oldpathsize-1].c_str(),oldpaths[oldpathsize-1].size(),XXHASHSEED);
-					int64 newhash = XXH32(newpaths[newpathsize-1].c_str(),newpaths[newpathsize-1].size(),XXHASHSEED);
+					int64 oldhash = ft->id;//XXH64(oldpaths[oldpathsize-1].c_str(),oldpaths[oldpathsize-1].size(),XXHASHSEED);
+					int64 newhash = XXH64(newpaths[newpathsize-1].c_str(),newpaths[newpathsize-1].size(),XXHASHSEED);
 
 					sqlite::query *query;
 					query = db->updateTags;
@@ -790,7 +790,7 @@ int tagrename (const char *oldpath, const char *newpath)
 
 						query = db->updateTagsParent;
 						query->clear();
-						int64 newparent = XXH32(newpaths[newpathsize-2].c_str(),newpaths[newpathsize-2].size(),XXHASHSEED);
+						int64 newparent = XXH64(newpaths[newpathsize-2].c_str(),newpaths[newpathsize-2].size(),XXHASHSEED);
 						query->bind(1,newparent);
 						query->bind(2,newhash);
 						query->emit();
@@ -830,8 +830,8 @@ int tagsymlink (const char *linkname, const char *path)
 		{
 			return -EACCES;
 		}
-		int64 tid = XXH32(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
-		int64 fid = XXH32(linkname,strlen(linkname),XXHASHSEED);
+		int64 tid = XXH64(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
+		int64 fid = XXH64(linkname,strlen(linkname),XXHASHSEED);
 		{
 			query = db->selectFileByID;
 			query->clear();
@@ -840,22 +840,28 @@ int tagsymlink (const char *linkname, const char *path)
 			if(!  result->next_row())
 			{
 				int64 fhash = 0;
-				XXH32_state_t *hashstate = XXH32_createState();
-				XXH32_reset  (hashstate, XXHASHSEED);
-				{
+				XXH64_state_t *hashstate = XXH64_createState();
+				XXH64_reset  (hashstate, XXHASHSEED);
+				 {
 					int length = sb.st_blksize;
 					char *buffer = new char [length];
-					std::ifstream is (path, std::ifstream::binary);
+					// printf("path: %s\n", linkname);
+					std::ifstream is (linkname, std::ifstream::binary);
 					while (is)
 					{
 						is.read (buffer,length);
-						XXH32_update (hashstate, buffer, is.gcount());
+						XXH64_update (hashstate, buffer, is.gcount());
+						// printf("tash %x\n", XXH64_digest (hashstate));
 					}
 					is.close();
 					delete[] buffer;
-				}
-				fhash = XXH32_digest (hashstate);
-				XXH32_freeState(hashstate);
+				 }
+				fhash = (int64)XXH64_digest (hashstate);
+				printf("hash %x\n", XXH64_digest (hashstate));
+				printf("fash %x\n\n", fhash);
+				printf("hashd %d\n", XXH64_digest (hashstate));
+				printf("fashd %d\n\n", fhash);
+				XXH64_freeState(hashstate);
 				
 				query = db->insertFile;
 				query->clear();
@@ -910,7 +916,7 @@ int tagunlink (const char *path)
 	{
 		return -ENOENT;
 	}
-	int64 tid = XXH32(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
+	int64 tid = XXH64(paths[pathsize-2].c_str(),paths[pathsize-2].size(),XXHASHSEED);
 	
 	sqlite::query *query = db->insertFileTaged;
 	query->clear();

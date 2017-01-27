@@ -15,6 +15,7 @@
 #include <sstream>
 #include <xxhash.h>
 #include "sql.h"
+#include <stdio.h>
 
 #include <iostream>     // std::cout
 #include <fstream>      // std::ifstream

@@ -32,12 +32,45 @@
 #include "sql.h"
 #include "fuse.h"
 #include <iostream>
+bool testcreatedir(const std::string &dir)
+{
+	struct stat buf;
+		if(stat(dir.c_str(),&buf) == 0)
+		{
+			printf("dir exist\n");
+		}
+		else
+		{
+			printf("dir not exist %s\n", dir.c_str());
+			if(mkdir(dir.c_str(),0755) == -1) 
+			{
+				int errsv = errno;
+				printf("somecall() failed %d\n", errsv);
+			}
+			return true;
+		}
+		return false;
+}
+bool testcreatedb(const std::string &dir)
+{
+	struct stat buf;
+		if(stat(dir.c_str(),&buf) == 0)
+		{
+			printf("db exist  %s\n", dir.c_str());
+		}
+		else
+		{
+			printf("db not exist %s\n", dir.c_str());
+			return true;
+		}
+		return false;
+}
 int main(int argc, char  *argv[])
 {
 	std::string home;
 	std::string file;
-	std::string dbdir = "";
-	bool create = false;
+	std::string dbname = "/tagfs";
+	bool create = true;
 
 	if(getenv("XDG_CONFIG_HOME") != NULL)
 	{
@@ -48,40 +81,35 @@ int main(int argc, char  *argv[])
 	{
 		home = std::string( getenv("HOME")) + "/.config/tagfs";
 	}
+	create = testcreatedir(home);
+
 	if(argc >=3 and strcmp(argv[argc-2],"--db")==0)
 	{
 		printf("use db: %s\n", argv[argc-1]);
-		dbdir = "/";
-		dbdir += argv[argc-1];
-		struct stat buf;
-		if(stat(std::string(home+dbdir).c_str(),&buf) == 0)
-		{
-			printf("dir exist");
-		}
-		else
-		{
-			printf("dir not exist %s", std::string(home+dbdir).c_str());
-			if(mkdir(std::string(home+dbdir).c_str(),0755) == -1) 
-			{
-				int errsv = errno;
-				printf("somecall() failed %d\n", errsv);
-			}
-			create = true;
-		}
+		dbname = "/";
+		dbname += argv[argc-1];
 		argc -=2;
 	}
 	char *zErrMsg = 0;
 	int rc;
-	file = home + dbdir +"/tagfs.db";
+	file = home + dbname +".db";
+	create = testcreatedb(file);
+	printf("create= %d \n", create);
+
 	fuse_operations ops;
 	memset(&ops, 0, sizeof(struct fuse_operations));
 	try{
 		tagDB db(file);
 
+		printf("create= %d \n", create);
 		if(create)
 		{
+
+			printf("create dba\n");
 			db.createDB();
+			printf("create dbb\n");
 		}
+		db.init();
 		init(&db, &ops);
 	}
 	catch(std::exception const & e) 

@@ -2,12 +2,7 @@
 
 void tagDB::createDB()
 {
-	std::string sql( "CREATE TABLE `tags` (\
-		`tid`	INTEGER,\
-		`tname`	TEXT UNIQUE,\
-		`tparent`	INTEGER,\
-		PRIMARY KEY(tid)\
-		);\
+	sqlite::execute(db,  "\
 		CREATE TABLE `files` (\
 		`fid`	INTEGER,\
 		`fhash`	INTEGER,\
@@ -17,13 +12,25 @@ void tagDB::createDB()
 		`fsize`	INTEGER NOT NULL,\
 		PRIMARY KEY(fid)\
 		);\
-		CREATE TABLE `filetag` (\
+	", true);
+	sqlite::execute(db, "\
+		CREATE TABLE `tags` (\
+		`tid`	INTEGER,\
+		`tname`	TEXT UNIQUE,\
+		`tparent`	INTEGER,\
+		PRIMARY KEY(tid)\
+		);\
+	", true);
+	sqlite::execute(db, "\
+				CREATE TABLE `filetag` (\
 		`tid`	INTEGER,\
 		`fid`	INTEGER,\
 		PRIMARY KEY(tid,fid)\
 		FOREIGN KEY(tid) REFERENCES tags(tid) ON UPDATE CASCADE ON DELETE CASCADE,\
 		FOREIGN KEY(fid) REFERENCES files(fid) ON UPDATE CASCADE ON DELETE CASCADE\
 		);\
+	", true);
+	sqlite::execute(db, "\
 		CREATE TRIGGER delete_tag BEFORE DELETE ON tags \
 		  BEGIN\
 		    UPDATE `tags` SET `tparent`=OLD.tparent  Where `tparent` == OLD.tid ;\
@@ -35,8 +42,8 @@ void tagDB::createDB()
 		    UPDATE `tags` SET `tparent`=NEW.tid  Where `tparent` == OLD.tid ;\
 		    UPDATE `filetag` SET `tid`=NEW.tid  Where `tid` == OLD.tid ;\
 		  END;\
-		  " );
-	sqlite::execute(db, sql, true);
+	", true);
+	// sqlite::execute(db, sql", true);
 }
 
 
@@ -150,5 +157,5 @@ void tagDB::init()
 tagDB::tagDB(const std::string& filename): db(filename)
 {
 	sqlite::execute(db, "PRAGMA foreign_keys = 1;", true);
-	init();
+	// init();
 }
