@@ -20,7 +20,7 @@
 #include <iostream>     // std::cout
 #include <fstream>      // std::ifstream
 
-#define XXHASHSEED 0x5bd1e995
+#include "common.h"
 typedef  boost::int64_t int64;
 class Ftype
 {

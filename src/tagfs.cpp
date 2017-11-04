@@ -31,7 +31,9 @@
 #include <sys/stat.h>
 #include "sql.h"
 #include "fuse.h"
+#include "tool.h"
 #include <iostream>
+#include "common.h"
 bool testcreatedir(const std::string &dir)
 {
 	struct stat buf;
@@ -71,7 +73,7 @@ int main(int argc, char  *argv[])
 	std::string file;
 	std::string dbname = "/tagfs";
 	bool create = true;
-
+	bool toolMode = false;
 	if(getenv("XDG_CONFIG_HOME") != NULL)
 	{
 		// If XDG_CONFIG_HOME is set explicitly, we'll use that instead of $HOME/.config
@@ -82,7 +84,11 @@ int main(int argc, char  *argv[])
 		home = std::string( getenv("HOME")) + "/.config/tagfs";
 	}
 	create = testcreatedir(home);
-
+	if(strcmp(argv[1],"--")==0)
+	{
+		printf("use toolMode %s\n", argv[1]);
+		toolMode = true;
+	}
 	if(argc >=3 and strcmp(argv[argc-2],"--db")==0)
 	{
 		printf("use db: %s\n", argv[argc-1]);
@@ -98,8 +104,8 @@ int main(int argc, char  *argv[])
 
 	fuse_operations ops;
 	memset(&ops, 0, sizeof(struct fuse_operations));
+	tagDB db(file);
 	try{
-		tagDB db(file);
 
 		printf("create= %d \n", create);
 		if(create)
@@ -117,5 +123,11 @@ int main(int argc, char  *argv[])
 		std::cerr << "An error occurred: " << e.what() << std::endl;
 		return 1;
 	}
-	return fuse_main(argc, argv, &ops,NULL);;
+	if(toolMode)
+	{	
+		tool(db.db, argc, argv);
+		return 0;
+	}
+	else
+		return fuse_main(argc, argv, &ops,NULL);;
 }
