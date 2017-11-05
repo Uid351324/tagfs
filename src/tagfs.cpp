@@ -84,17 +84,20 @@ int main(int argc, char  *argv[])
 		home = std::string( getenv("HOME")) + "/.config/tagfs";
 	}
 	create = testcreatedir(home);
-	if(strcmp(argv[1],"--")==0)
+	int nxtArg = 1;// [0] is exe name so [1] is first actual argument
+	if(strcmp(argv[nxtArg],"--")==0)
 	{
 		printf("use toolMode %s\n", argv[1]);
 		toolMode = true;
+		nxtArg++;
 	}
-	if(argc >=3 and strcmp(argv[argc-2],"--db")==0)
+	if(strcmp(argv[nxtArg],"--db")==0)
 	{
-		printf("use db: %s\n", argv[argc-1]);
+		printf("use db: %s\n", argv[++nxtArg]);
 		dbname = "/";
-		dbname += argv[argc-1];
-		argc -=2;
+		dbname += argv[nxtArg];
+		nxtArg++;
+//		argc -=2;
 	}
 	char *zErrMsg = 0;
 	int rc;
@@ -123,11 +126,12 @@ int main(int argc, char  *argv[])
 		std::cerr << "An error occurred: " << e.what() << std::endl;
 		return 1;
 	}
+	nxtArg--;//shift back to 'exec name' first argument because that what exepts fuse
 	if(toolMode)
 	{	
-		tool(db.db, argc, argv);
+		tool(db.db, argc-nxtArg, argv+nxtArg);
 		return 0;
 	}
 	else
-		return fuse_main(argc, argv, &ops,NULL);;
+		return fuse_main(argc-nxtArg, argv+nxtArg, &ops,NULL);;
 }
