@@ -65,10 +65,13 @@ char  ** tool::howPrint(int &numFiles,char  **files, PrintType & pt)
 	return &files[0];
 }
 
-void tool::printResult(const char *file, const boost::shared_ptr<sqlite::result> &result,const PrintType& pt)
+bool tool::printResult(const char *file, const boost::shared_ptr<sqlite::result> &result,const PrintType& pt)
 {
-	if(result->next_row())
+	bool nextRow = result->next_row();
+	if(nextRow)
 	{
+		if( pt == PrintType::TagLess)
+			printf("%s\n",result->get_string( 1).c_str());
 //		printf("%d %s %s %d %d\n",  result->get_int64( 0),
 //			 result->get_string( 1).c_str() ,
 //			 result->get_string( 2).c_str() ,
@@ -94,7 +97,7 @@ void tool::printResult(const char *file, const boost::shared_ptr<sqlite::result>
 			printf("%s\n", file);
 	}
 //			found++;
-	
+	return nextRow;
 }
 
 tool::tool(sqlite::connection &_db, int _argc, char  **_argv):db(_db),argc(_argc),argv(_argv)
@@ -106,46 +109,11 @@ tool::tool(sqlite::connection &_db, int _argc, char  **_argv):db(_db),argc(_argc
 		printf("tool-");
 	if(strcmp(argv[1],"cont")==0)// 
 	{
-		int numFiles = argc-2;
-		char  **files = argv+2;
-		Contain ct{Contain::Path} ;
-		PrintType pt{PrintType::All};
-		files = howCont(numFiles, files, ct);
-		files = howPrint(numFiles, files, pt);
-		printf("cont-");
-		boost::shared_ptr<sqlite::result> (tool::*containFunction)(const char *) = nullptr;
-		if(ct == Contain::Path)
-		{
-			printf("by-name\n");
-			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where file = ?");
-			containFunction=&tool::containPath;
-		}
-		if(ct == Contain::Hash)
-		{
-			printf("by-hash\n");
-			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where fhash = ?");
-			containFunction=&tool::containHash;
-		}
-		if(ct == Contain::Both)
-		{
-			printf("by-hash\n");
-			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where file = ? and fhash = ?");
-			containFunction=&tool::containBoth;
-		}
-		if(ct == Contain::Either)
-		{
-			printf("by-hash\n");
-			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where file = ? or fhash = ?");
-			containFunction=&tool::containBoth;
-		}
-		char resolved_path[PATH_MAX];
-		for( int i = 0; i < numFiles ; ++i)
-		{
-			auto file = files[i];
-			printf(">>%d %s\n",i, file);
-			realpath(file, resolved_path); 
-			printResult(file, (this->*containFunction)(resolved_path), pt);
-		}
+		toolContains();
+	}
+	if(strcmp(argv[1],"tagless")==0)// 
+	{
+		toolTagless();
 	}
 }
 
@@ -271,4 +239,68 @@ boost::shared_ptr<sqlite::result> tool::containBoth(const char *file)
 		printf("not file\n");
 		return nullptr;
 	}
+}
+void tool::toolContains(void)
+{
+		int numFiles = argc-2;
+		char  **files = argv+2;
+		Contain ct{Contain::Path} ;
+		PrintType pt{PrintType::All};
+		files = howCont(numFiles, files, ct);
+		files = howPrint(numFiles, files, pt);
+		printf("cont-");
+		boost::shared_ptr<sqlite::result> (tool::*containFunction)(const char *) = nullptr;
+		if(ct == Contain::Path)
+		{
+			printf("by-name\n");
+			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where file = ?");
+			containFunction=&tool::containPath;
+		}
+		if(ct == Contain::Hash)
+		{
+			printf("by-hash\n");
+			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where fhash = ?");
+			containFunction=&tool::containHash;
+		}
+		if(ct == Contain::Both)
+		{
+			printf("by-hash\n");
+			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where file = ? and fhash = ?");
+			containFunction=&tool::containBoth;
+		}
+		if(ct == Contain::Either)
+		{
+			printf("by-hash\n");
+			select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where file = ? or fhash = ?");
+			containFunction=&tool::containBoth;
+		}
+		char resolved_path[PATH_MAX];
+		for( int i = 0; i < numFiles ; ++i)
+		{
+			auto file = files[i];
+			printf(">>%d %s\n",i, file);
+			realpath(file, resolved_path); 
+			printResult(file, (this->*containFunction)(resolved_path), pt);
+		}
+}
+
+void tool::toolTagless(void)
+{
+	printf("tagless\n");
+	select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files where fid not in (select distinct fid from filetag)");
+	select->clear();
+	boost::shared_ptr<sqlite::result> result = select->get_result();
+	while(printResult(nullptr, result, PrintType::TagLess));
+}
+
+void tool::toolLinkless(void)
+{
+}
+
+void tool::toolReHash(void)
+{
+}
+
+void tool::toolReLink(void)
+{
 }

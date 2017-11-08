@@ -19,7 +19,7 @@
 #include "common.h"
 
 typedef  boost::int64_t int64;
-enum class PrintType{All,AllTaged, Found, NotFound};
+enum class PrintType{All,AllTaged, Found, NotFound, TagLess};
 enum class  Contain{ Path, Hash, Both, Either};
 class tool
 {
@@ -39,7 +39,13 @@ private:
 	int argc;
 	char  **argv;
 	
-	void printResult(const char *file, const boost::shared_ptr<sqlite::result> &result, const PrintType& pt);
+	void toolContains( void );
+	void toolTagless( void );
+	void toolLinkless( void );
+	void toolReHash( void );
+	void toolReLink( void );
+	
+	bool printResult(const char *file, const boost::shared_ptr<sqlite::result> &result, const PrintType& pt);
 
 	char  ** howCont(int &numFiles,char  **files, Contain & ct);
 	char  ** howPrint(int &numFiles,char  **files, PrintType & pt);
