@@ -107,13 +107,17 @@ tool::tool(sqlite::connection &_db, int _argc, char  **_argv):db(_db),argc(_argc
 		printf("arg[%d] %s\n",i, argv[i]);
 	}	
 		printf("tool-");
-	if(strcmp(argv[1],"cont")==0)// 
+	if(strcmp(argv[1],"contain")==0)// 
 	{
 		toolContains();
 	}
 	if(strcmp(argv[1],"tagless")==0)// 
 	{
 		toolTagless();
+	}
+	if(strcmp(argv[1],"linkless")==0)// 
+	{
+		toolLinkless();
 	}
 }
 
@@ -142,7 +146,11 @@ boost::shared_ptr<sqlite::result> tool::containPath(const char *file)
 {
 
 	struct stat64 sb;
-	stat64(file, &sb);
+	if(stat64(file, &sb) == -1)
+	{
+		perror("stat");
+		return nullptr;
+	}
 //	printf("%s:\n", file);
 	if(S_ISREG(sb.st_mode) or S_ISDIR(sb.st_mode))
 	{
@@ -198,7 +206,11 @@ boost::shared_ptr<sqlite::result> tool::containHash(const char *file)
 {
 
 	struct stat64 sb;
-	stat64(file, &sb);
+	if(stat64(file, &sb) == -1)
+	{
+		perror("stat");
+		return nullptr;
+	}
 	printf("%s:\n", file);
 	if(S_ISREG(sb.st_mode) or S_ISDIR(sb.st_mode))
 	{
@@ -222,7 +234,11 @@ boost::shared_ptr<sqlite::result> tool::containHash(const char *file)
 boost::shared_ptr<sqlite::result> tool::containBoth(const char *file)
 {
 	struct stat64 sb;
-	stat64(file, &sb);
+	if(stat64(file, &sb) == -1)
+	{
+		perror("stat");
+		return nullptr;
+	}
 	if(S_ISREG(sb.st_mode) or S_ISDIR(sb.st_mode))
 	{
 		int64 fhash = calcualteHash(file,sb.st_blksize);
@@ -295,6 +311,19 @@ void tool::toolTagless(void)
 
 void tool::toolLinkless(void)
 {
+	printf("linkless\n");
+	select = new sqlite::query(db, "select fid,file,filename,fsize, fhash from files");
+	select->clear();
+	boost::shared_ptr<sqlite::result> result = select->get_result();
+	while(result->next_row())
+	{
+		const std::string &file = result->get_string( 1);
+//		std::cout << file << ":"<<std::endl;
+		struct stat64 sb;
+		if ( stat64(file.c_str(), &sb) == -1) 
+			printf("%s\n", file.c_str());
+
+	}
 }
 
 void tool::toolReHash(void)

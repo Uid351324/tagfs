@@ -816,7 +816,11 @@ int tagsymlink (const char *linkname, const char *path)
 	uint linknamesize = linknames.size();
 	
 	struct stat64 sb;
-	stat64(linkname, &sb);
+	if(stat64(linkname, &sb) == -1)
+	{
+		perror("stat");
+		return -EINVAL;
+	}
 	sqlite::query *query;
 	if(S_ISREG(sb.st_mode) or S_ISDIR(sb.st_mode))
 	{
