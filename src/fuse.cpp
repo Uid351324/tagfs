@@ -2,22 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-		if(item != "")
-			elems.push_back(item);
-    }
-    return elems;
-}
 
-
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, elems);
-    return elems;
-}
 void init(tagDB *dbp,struct fuse_operations *tagoper)
 {
 	tagoper->getattr   = taggetattr;
@@ -85,7 +70,7 @@ Ftype* createQuery(std::vector<std::string> &paths, bool noparents)
 			)";
 		params +=2;
 	}
-	boost::shared_ptr<sqlite::query> queryStatment ( db->setUp(query.str()));
+	auto queryStatment ( db->setUp(query.str()));
 	for(uint i = 1, j = 1 ; i < pathsize -1;  i++)
 	{
 		int64 htag = XXH64(paths[i].c_str(),paths[i].size(),XXHASHSEED);
@@ -94,7 +79,7 @@ Ftype* createQuery(std::vector<std::string> &paths, bool noparents)
 		queryStatment->bind(j++,name);
 	}
 	std::cout << query.str() << std::endl;
-	boost::shared_ptr<sqlite::result> result = queryStatment->get_result();
+	auto result = queryStatment->get_result();
 	if(result->next_row())
 	{
 		Ffile* rf = new Ffile();
@@ -139,7 +124,7 @@ Ftype* fileOrTagByName(std::vector<std::string> &paths, bool noparents)
 		query->bind(1,name);
 	}
 	
-	boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
+	auto result = query->get_result();
 	if(result->next_row())
     {
 		Ftag* rf = new Ftag();
@@ -181,7 +166,7 @@ Ftype* fileOrTagByName(std::vector<std::string> &paths, bool noparents)
 			query->bind(2,hparent);
 		}
 		
-		boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
+		auto result = query->get_result();
 		if(result->next_row())
 		{
 			Ffile* rf = new Ffile();
@@ -246,7 +231,7 @@ int taggetattr(const char *path, struct stat *stbuf)
 				{
 					stbuf->st_mode = S_IFREG | 0444;
 					stbuf->st_nlink = 2;
-					stbuf->st_size = 1024;
+					stbuf->st_size = 1024;///TODO* calcualte size of .tags. file
 				}
 				return 0;
 			}
@@ -313,7 +298,7 @@ void tagsOfFile(int64 fid, std::string &output)
 	query->clear();
 	query->bind(1,fid);
 
-	boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
+	auto result = query->get_result();
 
 	while(result->next_row())
     {
@@ -342,7 +327,7 @@ int filldir(void *buf, fuse_fill_dir_t filler, bool withParent, int64 parentHash
 		query->bind(1,parentHash);
 	}
 	
-	boost::shared_ptr<sqlite::result> result = query->get_result();
+	auto result = query->get_result();
 	
 	try{
 		while(result->next_row())
@@ -367,7 +352,7 @@ int fillinks(void *buf, fuse_fill_dir_t filler,  int64 parentHash)
 	query->clear();
 	query->bind(1,parentHash);
 	
-	boost::shared_ptr<sqlite::result> result = query->get_result();
+	auto result = query->get_result();
 	
 	while(result->next_row())
     {
@@ -384,7 +369,7 @@ int fillinksplus(void *buf, fuse_fill_dir_t filler,  int64 parentHash)
 	query->clear();
 	query->bind(1,parentHash);
 	
-	boost::shared_ptr<sqlite::result> result = query->get_result();
+	auto result = query->get_result();
 	
 	while(result->next_row())
     {
@@ -459,7 +444,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 		queryStatment->bind(i,htag);
 		i++;
 	}
-	boost::shared_ptr<sqlite::result> result = queryStatment->get_result();
+	auto result = queryStatment->get_result();
 	while(result->next_row())
 	{
 		filler(buf, result->get_string(2).c_str(), NULL, 0);
@@ -534,7 +519,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 	else
 	{
 		bool tagsFile = false;
-		if ( paths[pathsize-1].compare ( 0, 6, ".tags." ) == 0)//tekst file containing all tags for symlink eg: from movie.mkv a file .tags.movie.mkv
+		if ( paths[pathsize-1].compare ( 0, 6, ".tags." ) == 0)//text file containing all tags for symlink eg: from movie.mkv a file .tags.movie.mkv
 		{
 			tagsFile = true;
 			paths[pathsize-1] = paths[pathsize-1].substr(6);//cut the '.tags.' mark to finde if have symlink in fs
@@ -670,7 +655,7 @@ int fillinksQuery(std::vector<std::string> &paths,void *buf, fuse_fill_dir_t fil
 		 return -EINVAL;
 	std::string text;
 	tagsOfFile(fi->fh, text);
-	text.resize(1024,'#');
+	text.resize(1024,'#');///TODO* calcualte size of .tags. file
 	if(offset > text.size())
 		return 0;
 	
@@ -736,7 +721,7 @@ int tagrmdir (const char *path)
 		query = db->selectTagByName;
 		query->clear();
 		query->bind(1,paths[pathsize-1]);		
-		boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
+		auto result = query->get_result();
 		if(result->next_row())
 		{
 			int64 hash = XXH64(paths[pathsize-1].c_str(),paths[pathsize-1].size(),XXHASHSEED);
@@ -827,9 +812,11 @@ int tagsymlink (const char *linkname, const char *path)
 		query = db->selectTagByName;
 		query->clear();
 		query->bind(1,paths[pathsize-2]);		
-		boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
+		auto result = query->get_result();
 		//TODO now in query links to last tag : expand all tags or forbiden to link in query
 		//ex when in query/foo/bar ln -s will create tag for bar only but query for ( foo and bar ) does not return newly link so ln return error
+		//ie symlink was created for bar but becuse we are in query for foo AND bar ln thinks it failed
+		//??? question: tag file with all tags? then what about NOT tags and OR tags? or forbid of tagging in query?
 		if( ! result->next_row())
 		{
 			return -EACCES;
@@ -840,32 +827,32 @@ int tagsymlink (const char *linkname, const char *path)
 			query = db->selectFileByID;
 			query->clear();
 			query->bind(1,fid);		
-			boost::shared_ptr<sqlite::result> result = query->get_result();///FIXME boost::shared_ptr<sqlite::result>
+			auto result = query->get_result();
 			if(!  result->next_row())
 			{
-				int64 fhash = 0;
-				XXH64_state_t *hashstate = XXH64_createState();
-				XXH64_reset  (hashstate, XXHASHSEED);
-				 {
-					int length = sb.st_blksize;
-					char *buffer = new char [length];
-					// printf("path: %s\n", linkname);
-					std::ifstream is (linkname, std::ifstream::binary);
-					while (is)
-					{
-						is.read (buffer,length);
-						XXH64_update (hashstate, buffer, is.gcount());
-						// printf("tash %x\n", XXH64_digest (hashstate));
-					}
-					is.close();
-					delete[] buffer;
-				 }
-				fhash = (int64)XXH64_digest (hashstate);
-				printf("hash %x\n", XXH64_digest (hashstate));
-				printf("fash %x\n\n", fhash);
-				printf("hashd %d\n", XXH64_digest (hashstate));
-				printf("fashd %d\n\n", fhash);
-				XXH64_freeState(hashstate);
+				int64 fhash = calcualteHash(linkname, sb.st_blksize );
+//				XXH64_state_t *hashstate = XXH64_createState();
+//				XXH64_reset  (hashstate, XXHASHSEED);
+//				 {
+//					int length = sb.st_blksize;
+//					char *buffer = new char [length];
+//					// printf("path: %s\n", linkname);
+//					std::ifstream is (linkname, std::ifstream::binary);
+//					while (is)
+//					{
+//						is.read (buffer,length);
+//						XXH64_update (hashstate, buffer, is.gcount());
+//						// printf("tash %x\n", XXH64_digest (hashstate));
+//					}
+//					is.close();
+//					delete[] buffer;
+//				 }
+//				fhash = (int64)XXH64_digest (hashstate);
+//				printf("hash %x\n", XXH64_digest (hashstate));
+//				printf("fash %x\n\n", fhash);
+//				printf("hashd %d\n", XXH64_digest (hashstate));
+//				printf("fashd %d\n\n", fhash);
+//				XXH64_freeState(hashstate);
 				
 				query = db->insertFile;
 				query->clear();

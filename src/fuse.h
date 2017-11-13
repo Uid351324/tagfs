@@ -64,8 +64,6 @@ int tagrename (const char *oldpath, const char *newpath);
 	int tagreadlink (const char * path, char *buffer, size_t size);
 	int tagunlink (const char *path);
 
-std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
-std::vector<std::string> split(const std::string &s, char delim);
 
 void init(tagDB *dbp, struct fuse_operations *tagoper);
 static struct fuse_operations tagoper ;

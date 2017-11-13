@@ -1,5 +1,6 @@
 #include "tool.h"
 #include <iostream>
+#include <vector>
 //enum class  Contain{ Name, Hash, Both};
 
 char  ** tool::howCont(int &numFiles,char  **files, Contain & ct)
@@ -118,6 +119,14 @@ tool::tool(sqlite::connection &_db, int _argc, char  **_argv):db(_db),argc(_argc
 	if(strcmp(argv[1],"linkless")==0)// 
 	{
 		toolLinkless();
+	}
+	if(strcmp(argv[1],"rehash")==0)// 
+	{
+		toolReHash();
+	}
+	if(strcmp(argv[1],"relink")==0)// 
+	{
+		toolReLink();
 	}
 }
 
@@ -298,6 +307,8 @@ void tool::toolContains(void)
 			realpath(file, resolved_path); 
 			printResult(file, (this->*containFunction)(resolved_path), pt);
 		}
+	delete select;
+	select = nullptr;
 }
 
 void tool::toolTagless(void)
@@ -307,6 +318,8 @@ void tool::toolTagless(void)
 	select->clear();
 	boost::shared_ptr<sqlite::result> result = select->get_result();
 	while(printResult(nullptr, result, PrintType::TagLess));
+	delete select;
+	select = nullptr;
 }
 
 void tool::toolLinkless(void)
@@ -324,12 +337,70 @@ void tool::toolLinkless(void)
 			printf("%s\n", file.c_str());
 
 	}
+	delete select;
+	select = nullptr;
 }
 
 void tool::toolReHash(void)
 {
+	int numFiles = argc-2;
+	char  **files = argv+2;
+	char resolved_path[PATH_MAX];
+	select = new sqlite::query(db, "update files set fhash = ?, fsize = ? where fid == ?");
+//	select->clear();
+	for( int i = 0; i < numFiles ; ++i)
+	{
+		auto file = files[i];
+		printf(">>%d %s\n",i, file);
+		struct stat64 sb;
+		if(stat64(file, &sb) == -1)
+		{
+			perror("stat");
+			continue;
+		}
+		int64 fhash = calcualteHash(file,sb.st_blksize);
+		int64 fid = XXH64(file,strlen(file),XXHASHSEED);
+		select->clear();
+		select->bind(1,fhash);
+		select->bind(2,sb.st_size);
+		select->bind(3,fid);
+		select->emit();
+		
+	}
+	delete select;
+	select = nullptr;
 }
 
 void tool::toolReLink(void)
 {
+	int numFiles = argc-2;
+	char  **files = argv+2;
+	char resolved_path[PATH_MAX];
+	select = new sqlite::query(db, "update files set fid = ?, file = ?, filename = ? where fhash == ?");
+//	select->clear();
+	for( int i = 0; i < numFiles ; ++i)
+	{
+		auto file = files[i];
+		printf(">>%d %s\n",i, file);
+		std::vector<std::string> fileParts = split(file, '/');
+//		uint linknamesize = linknames.size();
+		struct stat64 sb;
+		if(stat64(file, &sb) == -1)
+		{
+			perror("stat");
+			continue;
+		}
+		int64 fhash = calcualteHash(file,sb.st_blksize);
+		int64 fid = XXH64(file,strlen(file),XXHASHSEED);
+		select->clear();
+		select->bind(1,fid);
+		select->bind(2,file);
+		select->bind(3,fileParts.back());
+		select->bind(4,fhash);
+		
+		select->emit();
+		
+	}
+	delete select;
+	select = nullptr;
 }
